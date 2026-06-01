@@ -204,7 +204,7 @@ Esta seção explica o que foi adicionado ao projeto para expor a API REST, arqu
 
 ---
 
-### `sgc/sgc/settings.py` — Configuração do DRF e JWT
+### `sgc/sgc/settings.py` : Configuração do DRF e JWT
 
 Dois blocos foram inseridos nas configurações do projeto.
 
@@ -251,7 +251,7 @@ SIMPLE_JWT = {
 
 ---
 
-### `sgc/sgc/urls.py` — Rotas de autenticação JWT e inclusão da API
+### `sgc/sgc/urls.py` : Rotas de autenticação JWT e inclusão da API
 
 As três rotas do SimpleJWT foram registradas no `urlpatterns` principal, apontando para views prontas da biblioteca:
 
@@ -273,15 +273,15 @@ urlpatterns = [
 ]
 ```
 
-`TokenObtainPairView`, `TokenRefreshView` e `TokenVerifyView` são views já implementadas pelo `djangorestframework-simplejwt` — não foi necessário escrever nenhuma lógica de autenticação.
+`TokenObtainPairView`, `TokenRefreshView` e `TokenVerifyView` são views já implementadas pelo `djangorestframework-simplejwt`, não foi necessário escrever nenhuma lógica de autenticação.
 
 ---
 
-### `sgc/api/serializers.py` — Serialização dos modelos
+### `sgc/api/serializers.py` : Serialização dos modelos
 
 Os serializers convertem instâncias dos models Django em JSON (e validam JSON de entrada). Foram criadas três classes utilizadas pela API:
 
-**`ProfessorSerializer`** — serializa o model `Professor` de `core/models.py`:
+**`ProfessorSerializer`** : serializa o model `Professor` de `core/models.py`:
 
 ```python
 class ProfessorSerializer(serializers.ModelSerializer):
@@ -292,7 +292,7 @@ class ProfessorSerializer(serializers.ModelSerializer):
 
 Herda de `ModelSerializer`, que inspeciona o model automaticamente e gera os campos. Apenas `nome` e `email` são expostos (o campo `lattes` existe no model mas não é incluído).
 
-**`ProjetoSerializerList`** — versão enxuta para a listagem:
+**`ProjetoSerializerList`** : versão enxuta para a listagem:
 
 ```python
 class ProjetoSerializerList(serializers.ModelSerializer):
@@ -318,7 +318,7 @@ O campo `coordenador` é uma `ForeignKey` no model. Ao declarar `coordenador = P
 
 ---
 
-### `sgc/api/views.py` — Views da API
+### `sgc/api/views.py` : Views da API
 
 As views definem o comportamento de cada endpoint. O DRF fornece classes genéricas que eliminam código repetitivo:
 
@@ -336,7 +336,7 @@ class ProjetoListView(generics.ListAPIView):
     serializer_class = ProjetoSerializerList
 ```
 
-`ListAPIView` responde a `GET` retornando uma lista de objetos. Sem `permission_classes`, usa o padrão do `settings.py` — que não define permissão padrão — então o endpoint é **público**.
+`ListAPIView` responde a `GET` retornando uma lista de objetos. Sem `permission_classes`, usa o padrão do `settings.py`, que não define permissão padrão, então o endpoint é **público**.
 
 ```python
 class ProjetoDetailView(generics.RetrieveAPIView):
