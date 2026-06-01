@@ -14,17 +14,19 @@ no Cloud9 use o comando
 python manage.py runserver 0.0.0.0
 ```
 
-Requisições usando o curl no EC2/Cloud9
-
-## Listando todos os projetos
+# Realizando requisições a API do projeto
 Use o [Echo API Interceptor](https://chromewebstore.google.com/detail/echoapi-interceptor/lbpejenchcbgbhhckegemaendoepnpko?pli=1), Insomnia ou Postman para as requisições abaixo. 
+
+## Listando todos os projetos (/api/projetos/)
 
 ```
 curl http://localhost:8080/api/projetos/
 ```
 <img width="1093" height="935" alt="image" src="https://github.com/user-attachments/assets/e919bf3c-0f61-4f42-80c3-c8a608d59871" />
 
-## Obtendo o token de autenticação
+---
+
+## Obtendo o token de autenticação (/api/token/)
 ```
 curl \
   -X POST \
@@ -38,7 +40,10 @@ Não esqueça de configurar o header `Content-Type: application/json`, como na i
 
 <img width="1098" height="176" alt="image" src="https://github.com/user-attachments/assets/d06a42be-1aed-49fd-97f2-b7fc47f8b1de" />
 
-## Obtendo os detalhes de um projeto
+--- 
+
+
+## Obtendo os detalhes de um projeto (/api/projetos/1)
 ```
 curl \
   -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzYzMzUyMzQwLCJqdGkiOiIzYmE5ZjJiMDYwY2Q0NDU0ODFlMmQ3MmRhYmExMzg4NiIsInVzZXJfaWQiOjF9.VEk6Nuxa8UhCtaRWNA_Eb-FzhxBdC0brePWbA9u-PwY" \
@@ -46,7 +51,3 @@ curl \
 ```
 
 <img width="1093" height="935" alt="image" src="https://github.com/user-attachments/assets/9b837314-0ca3-4138-8c3c-350df8d903d7" />
-
-
-
-https://www.freecodecamp.org/news/graphql-vs-rest-api/
