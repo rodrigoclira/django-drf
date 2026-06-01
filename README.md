@@ -1,5 +1,7 @@
 # Exemplo de projeto usando Django Rest Framework e SimpleJWT
 
+> https://github.com/rodrigoclira/django-drf/archive/refs/heads/main.zip
+> 
 Nesse projeto, além do acesso via web, é disponibilizada uma API que permite ao usuário obter informações da aplicação. 
 
 Após instalar as dependências, execute o comando abaixo para rodar o programa: 
