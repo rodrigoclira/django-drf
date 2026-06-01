@@ -195,3 +195,176 @@ curl http://localhost:8000/api/projetos/
 curl http://localhost:8000/api/projetos/1 \
   -H "Authorization: Bearer $TOKEN"
 ```
+
+---
+
+## Código DRF inserido para a API funcionar
+
+Esta seção explica o que foi adicionado ao projeto para expor a API REST, arquivo por arquivo.
+
+---
+
+### `sgc/sgc/settings.py` — Configuração do DRF e JWT
+
+Dois blocos foram inseridos nas configurações do projeto.
+
+**Registro do DRF e autenticação padrão:**
+
+```python
+# sgc/sgc/settings.py
+
+INSTALLED_APPS = [
+    ...
+    'rest_framework',        # habilita o Django REST Framework
+    'rest_framework.authtoken',  # habilita autenticação por Token estático
+]
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # JWT (principal)
+        'rest_framework.authentication.TokenAuthentication',           # Token estático
+        'rest_framework.authentication.BasicAuthentication',           # usuário/senha
+    ),
+}
+```
+
+`DEFAULT_AUTHENTICATION_CLASSES` define a ordem em que o DRF tenta autenticar cada requisição. O JWT é tentado primeiro; se não houver header `Authorization: Bearer`, tenta Token; depois Basic.
+
+**Configuração dos tokens JWT (`SimpleJWT`):**
+
+```python
+import datetime
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': datetime.timedelta(minutes=2),   # token de acesso expira em 2 min
+    'REFRESH_TOKEN_LIFETIME': datetime.timedelta(days=1),     # refresh válido por 1 dia
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'ALGORITHM': 'HS256',
+    'SIGNING_KEY': SECRET_KEY,                                # assina com a SECRET_KEY do Django
+    'AUTH_HEADER_TYPES': ('Bearer',),                         # exige "Authorization: Bearer <token>"
+    'USER_ID_FIELD': 'id',
+    'USER_ID_CLAIM': 'user_id',                               # nome da claim no payload do JWT
+    'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
+}
+```
+
+---
+
+### `sgc/sgc/urls.py` — Rotas de autenticação JWT e inclusão da API
+
+As três rotas do SimpleJWT foram registradas no `urlpatterns` principal, apontando para views prontas da biblioteca:
+
+```python
+# sgc/sgc/urls.py
+
+from rest_framework_simplejwt.views import (
+    TokenObtainPairView,   # POST /api/token/ → gera access + refresh
+    TokenRefreshView,      # POST /api/token/refresh/ → renova o access
+    TokenVerifyView,       # POST /api/token/verify/ → valida um token
+)
+
+urlpatterns = [
+    ...
+    path('api/', include("api.urls", namespace="api")),          # rotas dos recursos
+    path('api/token/', TokenObtainPairView.as_view()),           # autenticação
+    path('api/token/refresh/', TokenRefreshView.as_view()),      # renovação
+    path('api/token/verify/', TokenVerifyView.as_view()),        # verificação
+]
+```
+
+`TokenObtainPairView`, `TokenRefreshView` e `TokenVerifyView` são views já implementadas pelo `djangorestframework-simplejwt` — não foi necessário escrever nenhuma lógica de autenticação.
+
+---
+
+### `sgc/api/serializers.py` — Serialização dos modelos
+
+Os serializers convertem instâncias dos models Django em JSON (e validam JSON de entrada). Foram criadas três classes utilizadas pela API:
+
+**`ProfessorSerializer`** — serializa o model `Professor` de `core/models.py`:
+
+```python
+class ProfessorSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Professor
+        fields = ['nome', 'email']
+```
+
+Herda de `ModelSerializer`, que inspeciona o model automaticamente e gera os campos. Apenas `nome` e `email` são expostos (o campo `lattes` existe no model mas não é incluído).
+
+**`ProjetoSerializerList`** — versão enxuta para a listagem:
+
+```python
+class ProjetoSerializerList(serializers.ModelSerializer):
+    class Meta:
+        model = Projeto
+        fields = ['titulo', 'pk']
+```
+
+Retorna apenas título e chave primária, reduzindo o payload da listagem.
+
+**`ProjetoSerializer`**: versão completa para o detalhe, com serializer aninhado:
+
+```python
+class ProjetoSerializer(serializers.ModelSerializer):
+    coordenador = ProfessorSerializer(many=False, read_only=True)  # objeto aninhado
+
+    class Meta:
+        model = Projeto
+        fields = ['pk', 'titulo', 'descricao', 'inicio', 'fim', 'aprovado', 'coordenador']
+```
+
+O campo `coordenador` é uma `ForeignKey` no model. Ao declarar `coordenador = ProfessorSerializer(...)`, o DRF serializa o objeto relacionado completo em vez de retornar apenas o ID. `read_only=True` impede que o campo seja usado em escritas.
+
+---
+
+### `sgc/api/views.py` — Views da API
+
+As views definem o comportamento de cada endpoint. O DRF fornece classes genéricas que eliminam código repetitivo:
+
+```python
+# sgc/api/views.py
+
+from rest_framework import generics
+from rest_framework.permissions import IsAuthenticated
+from .serializers import ProjetoSerializer, ProjetoSerializerList
+from projeto.models import Projeto
+
+
+class ProjetoListView(generics.ListAPIView):
+    queryset = Projeto.objects.all()
+    serializer_class = ProjetoSerializerList
+```
+
+`ListAPIView` responde a `GET` retornando uma lista de objetos. Sem `permission_classes`, usa o padrão do `settings.py` — que não define permissão padrão — então o endpoint é **público**.
+
+```python
+class ProjetoDetailView(generics.RetrieveAPIView):
+    permission_classes = (IsAuthenticated,)
+    queryset = Projeto.objects.all()
+    serializer_class = ProjetoSerializer
+```
+
+`RetrieveAPIView` responde a `GET /api/projetos/<pk>` retornando um único objeto. `permission_classes = (IsAuthenticated,)` faz o DRF rejeitar requisições sem autenticação válida com `401 Unauthorized`.
+
+---
+
+### `sgc/api/urls.py`: Roteamento interno da app `api`
+
+```python
+# sgc/api/urls.py
+
+from django.urls import path
+from . import views
+
+app_name = 'api'
+
+urlpatterns = [
+    path("projetos/", views.ProjetoListView.as_view(), name="api_projeto_list"),
+    path("projetos/<pk>", views.ProjetoDetailView.as_view(), name="api_projeto_detail"),
+]
+```
+
+`.as_view()` converte a classe em uma função de view compatível com o sistema de rotas do Django. O `app_name = 'api'` habilita o namespace, permitindo referenciar as rotas como `api:api_projeto_list` em outros pontos do projeto.
+
+---
