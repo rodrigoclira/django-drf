@@ -17,6 +17,8 @@ python manage.py runserver 0.0.0.0
 Requisições usando o curl no EC2/Cloud9
 
 ## Listando todos os projetos
+Use o [Echo API Interceptor](https://chromewebstore.google.com/detail/echoapi-interceptor/lbpejenchcbgbhhckegemaendoepnpko?pli=1), Insomnia ou Postman para as requisições abaixo. 
+
 ```
 curl http://localhost:8080/api/projetos/
 ```
